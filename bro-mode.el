@@ -30,7 +30,7 @@
   "Default highlighting expressions for Bro mode")
 
 ;; indenting
-(defun bro-indent-line ()
+(defun old/bro-indent-line ()
   "Indent current line as Bro code"
   (interactive)
   (beginning-of-line)
@@ -129,25 +129,23 @@
           (indent-line-to cur-indent)
         (indent-line-to 0)))))
 
-(defvar bro-mode-syntax-table
-  (let ((st (make-syntax-table)))
-    (modify-syntax-entry ?_ "w" st)
-    (modify-syntax-entry ?# "<" st)
-    (modify-syntax-entry ?\n ">" st)
-    st)
-  "Syntax table for bro-mode")
+(define-derived-mode bro-mode c-mode "Bro Script"
+  "bro-mode is a major mode for editing Bro scripts, run by the Bro IDS."
 
-(defun bro-mode ()
-  "Major mode for eding Bro scripting files"
-  (interactive)
-  (kill-all-local-variables)
-  (set-syntax-table bro-mode-syntax-table)
-  (use-local-map bro-mode-map)
-  (set (make-local-variable 'font-lock-defaults) '(bro-font-lock-keywords))
-  (set (make-local-variable 'indent-line-function) 'bro-indent-line)
-  (setq major-mode 'bro-mode)
-  (setq mode-name "Bro")
-  (run-hooks 'bro-mode-hook))
+  ;; Font lock
+  (setq font-lock-defaults '(bro-font-lock-keywords))
+
+  ;; Syntax table
+  (modify-syntax-entry ?_ "w" bro-mode-syntax-table) ; Redefine a word
+  (modify-syntax-entry ?# "<" bro-mode-syntax-table) ; comment-start
+  (modify-syntax-entry ?\n ">" bro-mode-syntax-table) ; comment-end
+
+  ;; Indent scripts in the style present on the main github repo by default.
+  (setq-default c-default-style "whitesmith"
+                c-basic-offset 8
+                tab-width 8
+                indent-tabs-mode t)
+  )
 
 (defun bro-event-lookup ()
   "Retrieves the documentation for the event at point.
