@@ -29,6 +29,40 @@
 (defvar bro-font-lock-keywords bro-font-lock-keywords-2
   "Default highlighting expressions for Bro mode")
 
+(defgroup bro
+  nil
+  "Variables to customize bro-mode."
+  :group 'local)
+
+(defcustom bro-tracefiles nil
+  "Directory to look for tracefiles (aka network captures, pcaps, pcapngs, etc)."
+  :type 'directory
+  :safe 'stringp
+  :group 'bro)
+
+(defcustom bro-install-dir "/usr/share/bro/"
+  "Directory to look for bro BIF."
+  :type 'directory
+  :safe 'stringp
+  :group 'bro)
+
+(defcustom bro-path-additional '()
+  "List of additional directories to add to BROPATH. Example: ~/bin"
+  :type '(repeat directory)
+  :safe 'stringp
+  :group 'bro)
+
+(defvar bro-path
+  (mapconcat (lambda (x) (concat (file-name-as-directory bro-install-dir) x))
+	     (append '("build/src"
+		       "scripts"
+		       "scripts/policy"
+		       "scripts/site")
+		     bro-path-additional)
+	     ":")
+  "Default list of directories to set BROPATH."
+  )
+
 ;; indenting
 (defun old/bro-indent-line ()
   "Indent current line as Bro code"
@@ -145,6 +179,11 @@
                 c-basic-offset 8
                 tab-width 8
                 indent-tabs-mode t)
+
+  ;; Set BROPATH if not set
+  (if (not (getenv "BROPATH"))
+      (setenv "BROPATH" bro-path)
+    (setq-default bro-path (getenv "BROPATH")))
   )
 
 (defun bro-event-lookup ()
@@ -153,14 +192,15 @@
 Requires that the bro-event-bif be set with a valid path and filename."
   (interactive)
   (let ( (bro-event-name (thing-at-point 'symbol))
+	 (bro-event-bif (concat (file-name-as-directory bro-install-dir) "/scripts/base/bif/events.bif.bro") )
          (start-pos)
          (end-pos)
          (bro-event-doc)
          (bro-event-buffer))
-    (message "Looking for %s in %s" bro-event-name bro-event-bif)
+    ;; (message "Looking for %s in %s" bro-event-name bro-event-bif)
     (if (file-exists-p bro-event-bif)
         (progn
-          (message "Found valid event.bif file.")
+          ;; (message "Found valid event.bif file.")
           (setq bro-event-buffer (find-file-noselect bro-event-bif))
           (save-excursion
             ;; switch to a buffer with the event.bif.bro file
@@ -185,13 +225,13 @@ Requires that the bro-event-bif be set with a valid path and filename."
                       (setq buffer-read-only nil)
                       (bro-mode)))
                   (kill-buffer bro-event-buffer))
-              (message "unable to find the event specified"))))
-      (message "Did not find valid event.bif file."))))
+              (message "Unable to find the event specified"))))
+      (message "Did not find valid event.bif file"))))
 
 (defun bro-event-query (query)
   "Query for related events
 
-Opens a new buffer with all global events that match the query"
+Opens a new buffer with all global events that match the query."
   (interactive "sEvent Query: ")
   (let ((start-pos)
         (end-pos)
@@ -245,7 +285,7 @@ Opens a new buffer with all global events that match the query"
 (defun bro-run(tracefile sigfile)
   "Will run the entire buffer through bro.
 
-Will ask for a tracefile(based on bro-tracefiles) and a signature file"
+Will ask for a tracefile(based on bro-tracefiles) and a signature file."
   (interactive "sTracefile: \nsSignature file: ")
   (shell-command (format "bro %s %s %s"
                          (if (equal tracefile "")
