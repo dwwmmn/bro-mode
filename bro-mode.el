@@ -1,6 +1,25 @@
+;;; bro-mode.el --- edit Bro scripts in emacs
 
-;; This was done for personal edification and steals from Scott Andrew Borton's
-;; Mode Tutorial with aplomb and apologies.
+;;; Version: 0.1
+;;; Package-Version: 20170707.1647
+;;; Author: Drew W. Malzahn <drew.malzahn@gmail.com>
+;;; Keywords: bro, bro ids
+;;; URL: https://github.com/srunnels/bro-mode
+
+;; This file is not part of GNU Emacs.
+
+;;; Commentary:
+
+;; Acknowledgments
+;; ---------------
+
+;; Original script by Scott Runnels (https://github.com/srunnels)
+;; Modified by Drew Malzahn (drew.malzahn (at) gmail.com)
+
+;;; This was done for personal edification and steals from Scott Andrew Borton's
+;;; Mode Tutorial with aplomb and apologies.
+
+;;; Many thanks to Jason Blevins and deft.el, who I copied quite a few ideas from.
 
 (defvar bro-mode-hook nil)
 
