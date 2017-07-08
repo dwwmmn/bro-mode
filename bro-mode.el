@@ -187,29 +187,6 @@
           (indent-line-to cur-indent)
         (indent-line-to 0)))))
 
-(define-derived-mode bro-mode c-mode "Bro Script"
-  "bro-mode is a major mode for editing Bro scripts, run by the Bro IDS."
-
-  ;; Font lock
-  (setq font-lock-defaults '(bro-font-lock-keywords))
-
-  ;; Syntax table
-  (modify-syntax-entry ?_ "w" bro-mode-syntax-table) ; Redefine a word
-  (modify-syntax-entry ?# "<" bro-mode-syntax-table) ; comment-start
-  (modify-syntax-entry ?\n ">" bro-mode-syntax-table) ; comment-end
-
-  ;; Indent scripts in the style present on the main github repo by default.
-  (setq-default c-default-style "whitesmith"
-                c-basic-offset 8
-                tab-width 8
-                indent-tabs-mode t)
-
-  ;; Set BROPATH if not set
-  (if (not (getenv "BROPATH"))
-      (setenv "BROPATH" bro-path)
-    (setq-default bro-path (getenv "BROPATH")))
-  )
-
 (defun bro-event-lookup ()
   "Retrieves the documentation for the event at point.
 
@@ -339,5 +316,33 @@ Will ask for a tracefile(based on bro-tracefiles) and a signature file"
                                           (region-beginning)
                                           (region-end)) "'"))))
 
+;;;###autoload
+
+(define-derived-mode bro-mode c-mode "Bro Script"
+  "bro-mode is a major mode for editing Bro scripts, run by the Bro IDS."
+
+  ;; Font lock
+  (setq font-lock-defaults '(bro-font-lock-keywords))
+
+  ;; Syntax table
+  (modify-syntax-entry ?_ "w" bro-mode-syntax-table) ; Redefine a word
+  (modify-syntax-entry ?$ "w" bro-mode-syntax-table)
+  (modify-syntax-entry ?# "<" bro-mode-syntax-table) ; comment-start
+  (modify-syntax-entry ?\n ">" bro-mode-syntax-table) ; comment-end
+
+  ;; Indent scripts in the style present on the main github repo by default.
+  (setq-default c-default-style "whitesmith"
+                c-basic-offset 8
+                tab-width 8
+                indent-tabs-mode t)
+
+  ;; Set BROPATH if not set
+  (if (not (getenv "BROPATH"))
+      (setenv "BROPATH" bro-path)
+    (setq-default bro-path (getenv "BROPATH")))
+
+  ;; Keymap
+  (use-local-map bro-mode-map)
+  )
 
 (provide 'bro-mode)
