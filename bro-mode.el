@@ -244,7 +244,8 @@ Opens a new buffer with all global events that match the query."
   (let ((start-pos)
         (end-pos)
         (bro-query-buffer "bro-queries")
-        (bro-query-results '()))
+        (bro-query-results '())
+	(bro-event-bif (concat (file-name-as-directory bro-install-dir) "/scripts/base/bif/events.bif.bro")))
     (message "Looking for \"%s\" in %s" query bro-event-bif)
     (if (file-exists-p bro-event-bif)
         (progn
