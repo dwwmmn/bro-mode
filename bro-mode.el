@@ -24,8 +24,13 @@
 (defvar bro-mode-hook nil)
 
 (defvar bro-mode-map
-  (let ((map (make-keymap)))
-    (define-key map "\C-j" 'newline-and-indent)
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-j") 'newline-and-indent)
+    (define-key map (kbd "C-c C-f e") 'bro-event-lookup)
+    (define-key map (kbd "C-c C-f q") 'bro-event-query)
+    (define-key map (kbd "C-c C-t e") 'bro-insert-event)
+    (define-key map (kbd "C-c C-b") 'bro-run)
+    (define-key map (kbd "C-c C-r") 'bro-run-region)
     map)
   "Keymap for Bro major mode")
 
