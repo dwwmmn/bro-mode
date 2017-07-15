@@ -94,105 +94,66 @@
   "Default list of directories to set BROPATH."
   )
 
-;; indenting
-(defun old/bro-indent-line ()
-  "Indent current line as Bro code"
-  (interactive)
-  (beginning-of-line)
-  (if (bobp)
-      (progn
-        (indent-line-to 0))
-    (let ((not-indented t)
-          (cur-indent 0))
-      (save-excursion
-        (while not-indented
-          (forward-line -1)
-          (if (bobp)
-              (progn
-                (indent-line-to 0)
-                (setq not-indented nil))
-            (unless (or (looking-at "^[ \t]*$") (looking-at "^[ \t]*#+.*$"))
-              (if (looking-at "^[ \t]*};$")
-                  (progn
-                    (setq cur-indent (- (current-indentation) default-tab-width))
-                    (setq not-indented nil)
-                    )
-                (if (looking-at "^.*};$")
-                  (progn
-                    ;; line ending in '};'"
-                    (setq cur-indent (current-indentation))
-                    ;;(setq cur-indent (- (current-indentation) default-tab-width))
-                    (setq not-indented nil))
-                (if (looking-at "^[ \t]*}$")
-                    (progn
-                      ;; blank line ending in '}"
-                      (setq cur-indent (- (current-indentation) default-tab-width))
-                      (setq not-indented nil))
-                  (if (looking-at "^[ \t]*\\(^event\\|function\\|if\\|else\\|when\\|for\\|export\\|while\\|redef.*{\\|type.*\{\\)")
-                      (progn
-                        ;; an event, if, for, export, while or redef block
-                        (setq cur-indent (+ (current-indentation) default-tab-width))
-                        (setq not-indented nil))
-                    (if (looking-at ".*;$")
-                        (progn
-                          ;; a line ending in a ";"
-                          (save-excursion
-                            (forward-line -1)
-                            (if (looking-at ".*;$")
-                                (progn
-                                  (setq cur-indent (current-indentation))
-                                  (setq not-indented nil))
-                              (if (looking-at ".*,$")
-                                  (progn
-                                    ;; a line ending in a comma followed by a line ending in a semicolon
-                                    (setq cur-indent (- (current-indentation) default-tab-width))
-                                    (setq not-indented nil)))
-                              )
-                            ) ;; _save excursion
-                          ) ;; _progn
-                      (if (looking-at ".*,$")
-                          ;; first line not ending in semi-colon
-                          (progn
-                            (save-excursion
-                              (forward-line -1)
-                              (if (looking-at "^[ \t]*$\\|^[ \t]*{$\\|^[ \t]*#+.*$")
-                                  ;; second line is an empty line
-                                  (progn
-                                    (forward-line)
-                                    (setq cur-indent (+ (current-indentation) default-tab-width))
-                                    (setq not-indented nil))
-                                (if (looking-at ".*,$")
-                                    ;; second line not ending in semi-colon
-                                    (progn
-                                      ;;(setq cur-indent (+ (current-indentation) default-tab-width))
-                                      (forward-line)
-                                      (setq cur-indent (current-indentation))
-                                      (setq not-indented nil))
-                                  (progn
-                                    (setq cur-indent (current-indentation))
-                                    (setq not-indented nil)
-                                    ) ;; _progn
-                                  ) ;; _if ".*,$"
-                                ) ;; _if "^[ \t]*$"
-                              ) ;; _save-excursion
-                            ) ;; _progn
-                        (if (looking-at "[ \t]*{$")
-                            (progn
-                              (setq cur-indent (current-indentation))
-                              (setq not-indented nil)
-                              ) ; _progn
-                          (if (looking-at ".*[^,;]$")
-                              (progn
-                                (setq cur-indent (- (current-indentation) default-tab-width))
-                                (setq not-indented nil)
-                                ) ;; _progn
-                            (if (bobp)
-                                (setq not-indented nil))))))))))))))
-      (if (< cur-indent 0)
-          (setq cur-indent 0))
-      (if cur-indent
-          (indent-line-to cur-indent)
-        (indent-line-to 0)))))
+(defun bro--proper-indentation (state)
+  ;; Returns the number of spaces to indent.
+  (save-excursion
+    (let* ((op  (point))
+	   (prev-indentation (save-excursion
+			       (forward-line -1)
+			       (back-to-indentation)
+			       (current-column)))
+	   (boi (progn
+		  (back-to-indentation)
+		  (point)))
+	   (current-indentation (current-column))
+	   (bol (line-beginning-position)))
+      ;; We start at the beginning of the indentation.
+      (if (nth 1 state)
+	  ;; We are inside a list, like {...} or (...)
+	  (let (list-open-char list-open-char-indent list-top-indent)
+	    (save-excursion
+	      (goto-char (nth 1 state))
+	      (setq list-open-char (char-after)
+		    list-open-char-indent (current-column))
+	      (back-to-indentation)
+	      (setq list-top-indent
+		    (or (save-excursion
+			  (and (re-search-backward "function\\|event\\|if\\|while\\|for\\|global\\|redef")
+			       (current-column)))
+			(current-column))))
+	    (cond
+	     ;; If we're in an arglist or conditional clause, align differently
+	     ((and (eq list-open-char ?\()
+		   (save-excursion (goto-char (nth 1 state))
+				   (back-to-indentation)
+				   (looking-at "event\\|function\\|global\\|if\\|while\\|for")))
+	      (+ 1 (save-excursion (goto-char (nth 1 state))
+				   (current-column))))
+	     ;; If we're at the end, don't indent as aggresively.
+	     ((looking-at "[})]") list-top-indent)
+	     (t (+ tab-width list-top-indent))))
+
+	;; We are outside any sort of list.
+	(if (save-excursion (forward-line -1)
+			    (end-of-line)
+			    (not (eq (char-before ?\;))))
+	    ;; For indenting code like this:
+	    ;; print fmt(
+	    ;;     super,
+	    ;;     duper,
+	    ;;     long,
+	    ;;     arg,
+	    ;;     list
+	    ;;);
+	    (+ current-indentation tab-width)
+	  current-indentation)
+	  ))))
+
+(defun bro-indent-line ()
+  (let ((pi (bro--proper-indentation (syntax-ppss))))
+    (when (and pi
+               (not (eq (current-indentation) pi)))
+      (indent-line-to pi))))
 
 (defun bro-event-lookup ()
   "Retrieves the documentation for the event at point.
@@ -326,7 +287,7 @@ Will ask for a tracefile(based on bro-tracefiles) and a signature file"
 
 ;;;###autoload
 
-(define-derived-mode bro-mode c-mode "Bro Script"
+(define-derived-mode bro-mode prog-mode "Bro Script"
   "bro-mode is a major mode for editing Bro scripts, run by the Bro IDS."
 
   ;; Font lock
@@ -340,11 +301,11 @@ Will ask for a tracefile(based on bro-tracefiles) and a signature file"
   (modify-syntax-entry ?# "<" bro-mode-syntax-table) ; comment-start
   (modify-syntax-entry ?\n ">" bro-mode-syntax-table) ; comment-end
 
-  ;; Indent scripts in the style present on the main github repo by default.
-  (setq-default c-default-style "whitesmith"
-                c-basic-offset 8
-                tab-width 8
-                indent-tabs-mode t)
+  ;; Indentation
+  (setq-local indent-line-function 'bro-indent-line)
+  (setq-local c-basic-offset 8
+	      tab-width 8
+	      indent-tabs-mode t)
 
   ;; Set BROPATH if not set
   (if (not (getenv "BROPATH"))
