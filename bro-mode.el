@@ -145,7 +145,7 @@
    ;; increase indentation.
    ((save-excursion
       (end-of-line 0)
-      (not (eq (char-current) ?\;)))
+      (not (eq (char-before) ?\;)))
     (+ tab-width current-indentation))
 	 ;; Default
 	 (t current-indentation))
