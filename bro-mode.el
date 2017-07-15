@@ -115,39 +115,41 @@
 	      (goto-char (nth 1 state))
 	      (setq list-open-char (char-after)
 		    list-open-char-indent (current-column))
-	      (back-to-indentation)
 	      (setq list-top-indent
 		    (or (save-excursion
-			  (and (re-search-backward "function\\|event\\|if\\|while\\|for\\|global\\|redef")
+			  (and (re-search-backward "function\\|event\\|if\\|while\\|for\\|global\\|export\\|redef")
 			       (current-column)))
-			(current-column))))
+			(progn
+			  (back-to-indentation)
+			  (current-column)))))
 	    (cond
 	     ;; If we're in an arglist or conditional clause, align differently
-	     ((and (eq list-open-char ?\()
+	     ((and (eq list-open-char ?\( )
 		   (save-excursion (goto-char (nth 1 state))
 				   (back-to-indentation)
 				   (looking-at "event\\|function\\|global\\|if\\|while\\|for")))
 	      (+ 1 (save-excursion (goto-char (nth 1 state))
 				   (current-column))))
-	     ;; If we're at the end, don't indent as aggresively.
+	     ;; If we're at the end brace, indent to the top brace.
 	     ((looking-at "[})]") list-top-indent)
 	     (t (+ tab-width list-top-indent))))
 
 	;; We are outside any sort of list.
-	(if (save-excursion (forward-line -1)
-			    (end-of-line)
-			    (not (eq (char-before ?\;))))
-	    ;; For indenting code like this:
-	    ;; print fmt(
-	    ;;     super,
-	    ;;     duper,
-	    ;;     long,
-	    ;;     arg,
-	    ;;     list
-	    ;;);
-	    (+ current-indentation tab-width)
-	  current-indentation)
-	  ))))
+	(cond
+   ;; TODO
+	 ;; Strings
+	 ((nth 3 state) current-indentation)
+	 ;; Comments
+	 ((nth 4 state) current-indentation)
+   ;; If line above does not end in a ;,
+   ;; increase indentation.
+   ((save-excursion
+      (end-of-line 0)
+      (not (eq (char-current) ?\;)))
+    (+ tab-width current-indentation))
+	 ;; Default
+	 (t current-indentation))
+	))))
 
 (defun bro-indent-line ()
   (let ((pi (bro--proper-indentation (syntax-ppss))))
